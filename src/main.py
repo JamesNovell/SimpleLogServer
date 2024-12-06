@@ -52,10 +52,9 @@ async def root():
 
 @app.get("/logs")
 async def get_logs(credentials: HTTPBasicCredentials = Depends(security)):
-    """
-    Endpoint to retrieve the log file.
-    """
-    if credentials.username != "admin" or credentials.password != "T!us4txY":
+    print(f"Received username: {credentials.username}")
+    print(f"Received password: {credentials.password}")
+    if credentials.username != "admin" or credentials.password != "anpass4":
         raise HTTPException(status_code=401, detail="Unauthorized")
     if not log_file.exists():
         raise HTTPException(status_code=404, detail="Log file not found.")
