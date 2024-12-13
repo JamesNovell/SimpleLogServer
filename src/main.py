@@ -59,4 +59,3 @@ async def get_logs(credentials: HTTPBasicCredentials = Depends(security)):
     if not log_file.exists():
         raise HTTPException(status_code=404, detail="Log file not found.")
     return FileResponse(log_file.resolve(), headers={"Content-Disposition": "attachment; filename=fetchedlogs.log"})
-
