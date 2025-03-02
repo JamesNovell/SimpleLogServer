@@ -4,9 +4,14 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from pathlib import Path
 from datetime import datetime
+import os
 import logging
 
 app = FastAPI()
+
+# Authentication credentials
+username = os.getenv('USERNAME', 'default_value')
+password = os.getenv('PASSWORD', 'default_value')
 
 # Logging setup
 logging.basicConfig(level=logging.ERROR)
@@ -19,12 +24,37 @@ log_dir.mkdir(exist_ok=True)
 # Define the log file path
 log_file = log_dir / "fetchedlogs.log"
 
-# Data model for the incoming payload
+# Shared dictionary
+shared_dict = {}
+
+# Data models
 class Payload(BaseModel):
     username: str
     message: str
 
+class DictPayload(BaseModel):
+    data: dict
+
 security = HTTPBasic()
+
+@app.post("/update")
+async def replace_dict(payload: DictPayload):
+    """
+    Endpoint to replace the current dictionary with a new one.
+    """
+    global shared_dict
+    try:
+        shared_dict = payload.data
+        return {"status": "success", "message": "Dictionary replaced successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to replace dictionary: {e}")
+
+@app.get("/pods")
+async def get_dict():
+    """
+    Endpoint to retrieve the current state of the dictionary.
+    """
+    return {"status": "success", "data": shared_dict}
 
 @app.post("/api/endpoint")
 async def receive_payload(payload: Payload):
@@ -32,16 +62,13 @@ async def receive_payload(payload: Payload):
     Endpoint to receive JSON data from a client and log it.
     """
     try:
-        # Prepare the log entry
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_entry = f"[{timestamp}] Username: {payload.username}, Message: {payload.message}\n"
 
-        # Write the log entry to the file
         with log_file.open("a") as file:
             file.write(log_entry)
 
         return {"status": "success", "message": "Payload logged successfully."}
-
     except Exception as e:
         logger.error(f"Error logging payload: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -52,10 +79,12 @@ async def root():
 
 @app.get("/logs")
 async def get_logs(credentials: HTTPBasicCredentials = Depends(security)):
-    print(f"Received username: {credentials.username}")
-    print(f"Received password: {credentials.password}")
-    if credentials.username != "admin" or credentials.password != "anpass4":
+    """
+    Endpoint to retrieve the log file with basic authentication.
+    """
+    if credentials.username != username or credentials.password != password:
         raise HTTPException(status_code=401, detail="Unauthorized")
     if not log_file.exists():
         raise HTTPException(status_code=404, detail="Log file not found.")
     return FileResponse(log_file.resolve(), headers={"Content-Disposition": "attachment; filename=fetchedlogs.log"})
+

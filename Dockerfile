@@ -1,6 +1,11 @@
 # Use an official Python runtime as a parent image
 FROM python:3.10-slim
 
+# Set environment variables (optional defaults for debugging)
+ENV USERNAME=default_username
+ENV PASSWORD=default_password
+
+
 # Set the working directory in the container
 WORKDIR /app
 
