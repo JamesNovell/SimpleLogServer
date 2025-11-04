@@ -35,6 +35,9 @@ class Payload(BaseModel):
 class DictPayload(BaseModel):
     data: dict
 
+class KeyPayload(BaseModel):
+    key: str
+
 security = HTTPBasic()
 
 @app.post("/update")
@@ -88,3 +91,16 @@ async def get_logs(credentials: HTTPBasicCredentials = Depends(security)):
         raise HTTPException(status_code=404, detail="Log file not found.")
     return FileResponse(log_file.resolve(), headers={"Content-Disposition": "attachment; filename=fetchedlogs.log"})
 
+@app.post("/get_value")
+async def get_value(payload: KeyPayload):
+    """
+    Endpoint to retrieve an individual value from the shared dictionary using a key.
+    """
+    try:
+        key = payload.key
+        if key in shared_dict:
+            return {"status": "success", "key": key, "value": shared_dict[key]}
+        else:
+            raise HTTPException(status_code=404, detail=f"Key '{key}' not found in the dictionary.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve value: {e}")
